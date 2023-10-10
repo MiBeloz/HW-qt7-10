@@ -2,7 +2,6 @@
 
 
 
-
 /* ServiceHeader
  * Для работы с потоками наши данные необходимо сериализовать.
  * Поскольку типы данных не стандартные перегрузим оператор << Для работы с ServiceHeader
@@ -38,7 +37,7 @@ TCPclient::TCPclient(QObject *parent) : QObject(parent)
 
     connect(socket, &QTcpSocket::readyRead, this, &TCPclient::ReadyReed);
     connect(socket, &QTcpSocket::connected, this, [&]{emit sig_connectStatus(STATUS_SUCCES);});
-    //connect(socket, &QTcpSocket::error, this, [&]{emit sig_connectStatus(ERR_CONNECT_TO_HOST);});
+    connect(socket, &QTcpSocket::errorOccurred, this, [&]{emit sig_connectStatus(ERR_CONNECT_TO_HOST);});
     connect(socket, &QTcpSocket::disconnected, this, &TCPclient::sig_Disconnected);
 }
 
@@ -51,7 +50,7 @@ void TCPclient::SendRequest(ServiceHeader head)
     QByteArray sendHdr;
     QDataStream outStream(&sendHdr, QIODevice::WriteOnly);
 
-    //outStream << head;
+    outStream << head;
 
     socket->write(sendHdr);
 }
@@ -64,8 +63,10 @@ void TCPclient::SendData(ServiceHeader head, QString str)
     QByteArray sendData;
     QDataStream outStr(&sendData, QIODevice::WriteOnly);
 
-    //outStr << head;
+    outStr << head;
     outStr << str;
+
+    socket->write(sendData);
 }
 
 /*
@@ -155,7 +156,7 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
     switch (header.idData){
     case GET_TIME:{
         QDateTime time;
-        stream << time;
+        stream >> time;
         emit sig_sendTime(time);
         break;
     }

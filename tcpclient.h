@@ -20,7 +20,6 @@ public:
     void DisconnectFromHost(void);
 
 
-
 private slots:
 
     void ReadyReed(void);

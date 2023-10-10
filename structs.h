@@ -8,9 +8,7 @@
 #define TYPE_REQ 10
 #define TYPE_ANS 20
 
-
 #pragma pack(push, 1)
-
 
 enum Messages{
 
@@ -29,9 +27,6 @@ enum StatusMessages{
     ERR_CONNECT_TO_HOST = 11,
 
     ERR_NO_FUNCT = 20   //Функционал не реализован
-
-
-
 };
 
 

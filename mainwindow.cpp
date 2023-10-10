@@ -39,7 +39,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(client, &TCPclient::sig_connectStatus, this, &MainWindow::DisplayConnectStatus);
     connect(client, &TCPclient::sig_sendTime, this, &MainWindow::DisplayTime);
 
-
 }
 
 MainWindow::~MainWindow()
@@ -69,8 +68,14 @@ void MainWindow::DisplayStat(StatServer stat)
 void MainWindow::DisplayError(uint16_t error)
 {
     switch (error) {
-    case ERR_NO_FREE_SPACE:
-    case ERR_NO_FUNCT:
+    case ERR_NO_FREE_SPACE:{
+        ui->tb_result->append("Недостаточно свободного места на сервере");
+        break;
+    }
+    case ERR_NO_FUNCT:{
+
+        ui->tb_result->append("Функционал не реализован");
+    }
     default:
         break;
     }
@@ -154,7 +159,11 @@ void MainWindow::on_pb_request_clicked()
    switch (ui->cb_request->currentIndex()){
 
        //Получить время
-       case 0:
+   case 0:{
+        header.idData = GET_TIME;
+        break;
+   }
+
        //Получить свободное место
        case 1:
        //Получить статистику
