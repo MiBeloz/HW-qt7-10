@@ -14,6 +14,7 @@ QDataStream &operator >>(QDataStream &out, ServiceHeader &data){
     out >> data.len;
     return out;
 };
+
 QDataStream &operator <<(QDataStream &in, ServiceHeader &data){
 
     in << data.id;
@@ -24,6 +25,17 @@ QDataStream &operator <<(QDataStream &in, ServiceHeader &data){
     return in;
 };
 
+QDataStream &operator >>(QDataStream &out, StatServer &data){
+
+    out << data.incBytes;
+    out << data.sendBytes;
+    out << data.revPck;
+    out << data.sendPck;
+    out << data.workTime;
+    out << data.clients;
+
+    return out;
+};
 
 
 /*
@@ -37,7 +49,7 @@ TCPclient::TCPclient(QObject *parent) : QObject(parent)
 
     connect(socket, &QTcpSocket::readyRead, this, &TCPclient::ReadyReed);
     connect(socket, &QTcpSocket::connected, this, [&]{emit sig_connectStatus(STATUS_SUCCES);});
-    connect(socket, &QTcpSocket::errorOccurred, this, [&]{emit sig_connectStatus(ERR_CONNECT_TO_HOST);});
+    //connect(socket, &QTcpSocket::errorOccurred, this, [&]{emit sig_connectStatus(ERR_CONNECT_TO_HOST);});
     connect(socket, &QTcpSocket::disconnected, this, &TCPclient::sig_Disconnected);
 }
 
@@ -152,7 +164,6 @@ void TCPclient::ReadyReed()
 
 void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
 {
-
     switch (header.idData){
     case GET_TIME:{
         QDateTime time;
@@ -160,13 +171,34 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
         emit sig_sendTime(time);
         break;
     }
-        case GET_SIZE:
-        case GET_STAT:
-        case SET_DATA:
-        case CLEAR_DATA:
-        default:
-            return;
 
-        }
+    case GET_SIZE:{
+        uint32_t freeSize;
+        stream >> freeSize;
+        emit sig_sendFreeSize(freeSize);
+        break;
+    }
+
+    case GET_STAT:{
+        StatServer statServ;
+        stream >> statServ;
+        emit sig_sendStat(statServ);
+        break;
+    }
+
+    case SET_DATA:{
+        QString str;
+        stream << str;
+        emit sig_SendReplyForSetData(str);
+        break;
+    }
+
+    case CLEAR_DATA:{
+        break;
+    }
+
+    default:
+        return;
+    }
 
 }

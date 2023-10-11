@@ -38,6 +38,9 @@ MainWindow::MainWindow(QWidget *parent)
  */
     connect(client, &TCPclient::sig_connectStatus, this, &MainWindow::DisplayConnectStatus);
     connect(client, &TCPclient::sig_sendTime, this, &MainWindow::DisplayTime);
+    connect(client, &TCPclient::sig_sendStat, this, &MainWindow::DisplayStat);
+    connect(client, &TCPclient::sig_sendFreeSize, this, &MainWindow::DisplayFreeSpace);
+    connect(client, &TCPclient::sig_SendReplyForSetData, this, &MainWindow::SetDataReply);
 
 }
 
@@ -55,15 +58,23 @@ void MainWindow::DisplayTime(QDateTime time)
 }
 void MainWindow::DisplayFreeSpace(uint32_t freeSpace)
 {
-
+    ui->tb_result->append("Свободное место на сервере: " + QString::number(freeSpace));
 }
 void MainWindow::SetDataReply(QString replyString)
 {
-
+    //ui->tb_result->append("Строка '" + replyString + "' отправлена на сервер.");
+    replyString = ui->le_data->text();
 }
 void MainWindow::DisplayStat(StatServer stat)
 {
-
+    ui->tb_result->append("Статистика:");
+    ui->tb_result->append("Время работы сервера: " + QString::number(stat.workTime));
+    ui->tb_result->append("Отправлено данных(байт): " + QString::number(stat.sendBytes));
+    ui->tb_result->append("Полученно данных(байт): " + QString::number(stat.incBytes));
+    ui->tb_result->append("Отправленное пакетов: " + QString::number(stat.sendPck));
+    ui->tb_result->append("Получено пакетов: " + QString::number(stat.revPck));
+    ui->tb_result->append("Подключено клиентов: " + QString::number(stat.clients));
+    ui->tb_result->append("----------------------");
 }
 void MainWindow::DisplayError(uint16_t error)
 {
@@ -158,24 +169,34 @@ void MainWindow::on_pb_request_clicked()
 
    switch (ui->cb_request->currentIndex()){
 
-       //Получить время
-   case 0:{
-        header.idData = GET_TIME;
-        break;
-   }
+   //Получить время
+   case 0:
+       header.idData = GET_TIME;
+       break;
 
-       //Получить свободное место
-       case 1:
-       //Получить статистику
-       case 2:
-       //Отправить данные
-       case 3:
-       //Очистить память на сервере
-       case 4:
-       default:
+   //Получить свободное место
+   case 1:
+       header.idData = GET_SIZE;
+       break;
+
+   //Получить статистику
+   case 2:
+       header.idData = GET_STAT;
+       break;
+
+   //Отправить данные
+   case 3:
+       header.idData = SET_DATA;
+       break;
+
+   //Очистить память на сервере
+   case 4:
+       header.idData = CLEAR_DATA;
+       break;
+
+   default:
        ui->tb_result->append("Такой запрос не реализован в текущей версии");
        return;
-
    }
 
    client->SendRequest(header);
