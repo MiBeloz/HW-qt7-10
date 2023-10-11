@@ -16,7 +16,6 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-
 private slots:
     void on_pb_connect_clicked();
     void on_pb_request_clicked();
@@ -28,7 +27,6 @@ private slots:
     void DisplayConnectStatus(uint16_t status);
     void DisplayError(uint16_t error);
     void DisplaySuccess(uint16_t typeMess);
-
 
     void on_cb_request_currentIndexChanged(int index);
 

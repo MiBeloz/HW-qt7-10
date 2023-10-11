@@ -1,42 +1,35 @@
 #include "tcpclient.h"
 
-
-
 /* ServiceHeader
  * Для работы с потоками наши данные необходимо сериализовать.
  * Поскольку типы данных не стандартные перегрузим оператор << Для работы с ServiceHeader
 */
-QDataStream &operator >>(QDataStream &out, ServiceHeader &data){
-
-    out >> data.id;
-    out >> data.idData;
-    out >> data.status;
-    out >> data.len;
-    return out;
-};
-
-QDataStream &operator <<(QDataStream &in, ServiceHeader &data){
-
-    in << data.id;
-    in << data.idData;
-    in << data.status;
-    in << data.len;
-
+QDataStream &operator >>(QDataStream &in, ServiceHeader &data){
+    in >> data.id;
+    in >> data.idData;
+    in >> data.status;
+    in >> data.len;
     return in;
 };
 
-QDataStream &operator >>(QDataStream &out, StatServer &data){
-
-    out << data.incBytes;
-    out << data.sendBytes;
-    out << data.revPck;
-    out << data.sendPck;
-    out << data.workTime;
-    out << data.clients;
-
+QDataStream &operator <<(QDataStream &out, ServiceHeader &data){
+    out << data.id;
+    out << data.idData;
+    out << data.status;
+    out << data.len;
     return out;
 };
 
+// StatServer
+QDataStream &operator >>(QDataStream &in, StatServer &data){
+    in >> data.incBytes;
+    in >> data.sendBytes;
+    in >> data.revPck;
+    in >> data.sendPck;
+    in >> data.workTime;
+    in >> data.clients;
+    return in;
+};
 
 /*
  * Поскольку мы являемся клиентом, инициализацию сокета
@@ -49,7 +42,7 @@ TCPclient::TCPclient(QObject *parent) : QObject(parent)
 
     connect(socket, &QTcpSocket::readyRead, this, &TCPclient::ReadyReed);
     connect(socket, &QTcpSocket::connected, this, [&]{emit sig_connectStatus(STATUS_SUCCES);});
-    //connect(socket, &QTcpSocket::errorOccurred, this, [&]{emit sig_connectStatus(ERR_CONNECT_TO_HOST);});
+    connect(socket, &QTcpSocket::errorOccurred, this, [&]{emit sig_connectStatus(ERR_CONNECT_TO_HOST);});
     connect(socket, &QTcpSocket::disconnected, this, &TCPclient::sig_Disconnected);
 }
 
@@ -88,6 +81,7 @@ void TCPclient::ConnectToHost(QHostAddress host, uint16_t port)
 {
     socket->connectToHost(host, port);
 }
+
 /*
  * \brief Метод отключения от сервера
  */
@@ -99,7 +93,6 @@ void TCPclient::DisconnectFromHost()
 
 void TCPclient::ReadyReed()
 {
-
     QDataStream incStream(socket);
 
     if(incStream.status() != QDataStream::Ok){
@@ -109,9 +102,9 @@ void TCPclient::ReadyReed()
         msg.exec();
     }
 
-
     //Читаем до конца потока
     while(incStream.atEnd() == false){
+
         //Если мы обработали предыдущий пакет, мы скинули значение idData в 0
         if(servHeader.idData == 0){
 
@@ -124,6 +117,7 @@ void TCPclient::ReadyReed()
             else{
                 //Читаем заголовок
                 incStream >> servHeader;
+
                 //Проверяем на корректность данных. Принимаем решение по заранее известному ID
                 //пакета. Если он "битый" отбрасываем все данные в поисках нового ID.
                 if(servHeader.id != ID){
@@ -140,11 +134,13 @@ void TCPclient::ReadyReed()
                 }
             }
         }
+
         //Если получены не все данные, то выходим из обработчика. Ждем новую посылку
         if(socket->bytesAvailable() < servHeader.len){
             return;
         }
         else{
+
             //Обработка данных
             ProcessingData(servHeader, incStream);
             servHeader.idData = 0;
@@ -161,7 +157,6 @@ void TCPclient::ReadyReed()
  * Поскольку все типы сообщений нам известны реализуем выбор через
  * switch. Реализуем получение времени.
 */
-
 void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
 {
     switch (header.idData){
@@ -188,17 +183,24 @@ void TCPclient::ProcessingData(ServiceHeader header, QDataStream &stream)
 
     case SET_DATA:{
         QString str;
-        stream << str;
-        emit sig_SendReplyForSetData(str);
+        stream >> str;
+
+        if (header.status == ERR_NO_FREE_SPACE){
+            emit sig_Error(ERR_NO_FREE_SPACE);
+        }
+        else {
+            emit sig_SendReplyForSetData(str);
+        }
+
         break;
     }
 
     case CLEAR_DATA:{
+        emit sig_Success(header.idData);
         break;
     }
 
     default:
         return;
     }
-
 }
